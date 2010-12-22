@@ -57,12 +57,11 @@ int qqwry_clean(qqwry_data_t data) {
 int qqwry_query(qqwry_data_t data, uint32_t ip_addr, qqwry_result_t *result) {    
     uint8_t *pos = data.raw;
 
-    unsigned int idx_first = qqwry_read_uint32(pos);
-    unsigned int idx_last = qqwry_read_uint32(pos + 4);    
-    unsigned int idx_found = idx_last;
-    unsigned int count = (idx_last - idx_first) / 7;
+    uint32_t idx_first = qqwry_read_uint32(pos);
+    uint32_t idx_last = qqwry_read_uint32(pos + 4);    
+    uint32_t idx_found = idx_last;
     
-    unsigned int h = count;
+    unsigned int h = (idx_last - idx_first) / 7;
     unsigned int l = 0;
     unsigned int m;
    
@@ -83,8 +82,8 @@ int qqwry_query(qqwry_data_t data, uint32_t ip_addr, qqwry_result_t *result) {
         }
     }
     
-    unsigned int record_offset;
-    unsigned int country_offset;
+    uint32_t record_offset;
+    uint32_t country_offset;
     
     pos = qqwry_setpos(data.raw, idx_found + 4);
     record_offset = qqwry_read_uint24(pos);
