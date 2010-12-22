@@ -1,4 +1,7 @@
 
+$ make
+$ ./qqwry_query 114.80.230.198 | iconv -f gbk
+
 @see
 https://github.com/liwei/libQQWry
 

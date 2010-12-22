@@ -41,12 +41,21 @@ int qqwry_clean(qqwry_data_t data) {
     return 0;
 }
 
-#define qqwry_read_uint32(X) (*(uint8_t *)(X) | *((uint8_t *)(X)+1)<<8 | *((uint8_t *)(X)+2)<<16 | *((uint8_t *)(X)+3)<<24)
-#define qqwry_read_uint24(X) (*(uint8_t *)(X) | *((uint8_t *)(X)+1)<<8 | *((uint8_t *)(X)+2)<<16)
+#define qqwry_read_uint32(X) ((uint32_t)*(uint8_t *)(X) |\
+                              (uint32_t)*((uint8_t *)(X)+1)<<8 |\
+                              (uint32_t)*((uint8_t *)(X)+2)<<16 |\
+                              (uint32_t)*((uint8_t *)(X)+3)<<24)
+
+#define qqwry_read_uint24(X) ((uint32_t)*(uint8_t *)(X) |\
+                              (uint32_t)*((uint8_t *)(X)+1)<<8 |\
+                              (uint32_t)*((uint8_t *)(X)+2)<<16)
+
 #define qqwry_read_uint8(X)  (*(uint8_t *)(X))
 
+#define qqwry_setpos(X,Y) ((uint8_t *)(X) + (Y))
+
 int qqwry_query(qqwry_data_t data, uint32_t ip_addr, qqwry_result_t *result) {    
-    void *pos = data.raw;
+    uint8_t *pos = data.raw;
 
     unsigned int idx_first = qqwry_read_uint32(pos);
     unsigned int idx_last = qqwry_read_uint32(pos + 4);    
@@ -59,11 +68,11 @@ int qqwry_query(qqwry_data_t data, uint32_t ip_addr, qqwry_result_t *result) {
    
     while (l <= h) {
         m = (l + h) / 2;
-        pos = data.raw + idx_first + m * 7;
+        pos = qqwry_setpos(data.raw, idx_first + m * 7);
         if (ip_addr < qqwry_read_uint32(pos)) {
             h = m - 1;
         } else {
-            pos = data.raw + qqwry_read_uint24(pos + 4);
+            pos = qqwry_setpos(data.raw, qqwry_read_uint24(pos + 4));
             if (ip_addr > qqwry_read_uint32(pos)) {
                 l = m + 1;
             } else {
@@ -77,20 +86,20 @@ int qqwry_query(qqwry_data_t data, uint32_t ip_addr, qqwry_result_t *result) {
     unsigned int record_offset;
     unsigned int country_offset;
     
-    pos = data.raw + idx_found + 4;
+    pos = qqwry_setpos(data.raw, idx_found + 4);
     record_offset = qqwry_read_uint24(pos);
-    pos = data.raw + record_offset + 4;
+    pos = qqwry_setpos(data.raw, record_offset + 4);
     uint8_t flag;    
     switch (flag = qqwry_read_uint8(pos)) {
         case 0x01:
             country_offset = qqwry_read_uint24(pos + 1);
-            pos = data.raw + country_offset;
+            pos = qqwry_setpos(data.raw, country_offset);
             switch (flag = qqwry_read_uint8(pos)) {
                 case 0x02:
                     /* Country information redirected again */
-                    pos = data.raw + qqwry_read_uint24(pos + 1);
+                    pos = qqwry_setpos(data.raw, qqwry_read_uint24(pos + 1));
                     result->country = (char *)(pos);
-                    pos = data.raw + country_offset + 4;
+                    pos = qqwry_setpos(data.raw, country_offset + 4);
                     break;
                 default:
                     result->country = (char *)(pos);
@@ -99,10 +108,10 @@ int qqwry_query(qqwry_data_t data, uint32_t ip_addr, qqwry_result_t *result) {
             }            
             break;
         case 0x02:
-            pos = data.raw + qqwry_read_uint24(pos + 1);
+            pos = qqwry_setpos(data.raw, qqwry_read_uint24(pos + 1));
             result->country = (char *)(pos);
             /* Skip 4 bytes ip and 4 bytes country offset */
-            pos = data.raw + record_offset + 8;
+            pos = qqwry_setpos(data.raw, record_offset + 8);
             break;
         default:
             result->country = (char *)(pos);
@@ -117,7 +126,7 @@ int qqwry_query(qqwry_data_t data, uint32_t ip_addr, qqwry_result_t *result) {
             break;
         case 0x01:
         case 0x02:
-            pos = data.raw + qqwry_read_uint24(pos + 1);
+            pos = qqwry_setpos(data.raw, qqwry_read_uint24(pos + 1));
             result->area = (char *)(pos);
             break;
         default:
